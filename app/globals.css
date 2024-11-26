@@ -910,6 +910,43 @@ input[type="number"] {
   transition: border-color 0.3s;
 }
 
+#accept-btn{
+  background-color: transparent;
+  color: var(--color-primary);
+  width: 50px;
+  margin-right: 20px;
+  size: 20px;
+}
+
+#rejept-btn {
+  background-color: transparent;
+  color: #c62828;
+  width: 50px;
+}
+
+#accept-btn:hover {
+  background-color: transparent;
+  color: #41f1b6;
+}
+
+#rejept-btn:hover {
+  background-color: transparent;
+  color: var(--color-danger);
+}
+
+.details-btn {
+  background-color: transparent;
+  color: var(--color-primary);
+  width: 100px;
+  height: 10px;
+  font-size: 12px;
+}
+
+.details-btn:hover {
+  background-color: transparent;
+  color: #41f1b6;
+}
+
 input[type="text"]:focus,
 input[type="tel"]:focus,
 input[type="number"]:focus {
@@ -1012,3 +1049,15 @@ button:hover {
   color: var(--color-background);
 }
 
+.logout-button {
+  background-color: transparent;
+  color: #c62828;
+  display: flex;
+  margin-top: 100px;
+  width: 60px;
+}
+
+.logout-button:hover {
+  background-color: transparent;
+  color: var(--color-danger);
+}
