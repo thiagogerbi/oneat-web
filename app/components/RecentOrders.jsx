@@ -1,26 +1,23 @@
-"use client";
+'use client';
 
-import { Check, Close, ArrowBack, ArrowForward } from "@mui/icons-material";
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // Importa o hook para navegação
-import supabase from "../../supabase";
 import { useAuth } from "../../context/authContext";
-import Link from 'next/link'; // Import correto do Next.js
+import supabase from "../../supabase";
+import { Check, Close, ArrowBack, ArrowForward } from "@mui/icons-material";
 
 const RecentOrders = () => {
-  const { restaurante } = useAuth(); // Obtendo o restaurante do contexto
-  const router = useRouter(); // Inicializando o roteador
-  const [orders, setOrders] = useState([]); // Estado para armazenar todos os pedidos
-  const [currentPage, setCurrentPage] = useState(1); // Página atual
-  const recordsPerPage = 7; // Número de registros por página
+  const { restaurante } = useAuth(); // Obtém os dados do restaurante do contexto
+  const [orders, setOrders] = useState([]); // Estado para armazenar os pedidos
+  const [currentPage, setCurrentPage] = useState(1); // Controle de paginação
+  const [selectedOrder, setSelectedOrder] = useState(null); // Armazena os detalhes do pedido selecionado
+  const recordsPerPage = 7; // Número de pedidos por página
 
-  const totalPages = Math.ceil(orders.length / recordsPerPage); // Total de páginas calculado
+  const totalPages = Math.ceil(orders.length / recordsPerPage); // Calcula o total de páginas
   const currentOrders = orders.slice(
     (currentPage - 1) * recordsPerPage,
     currentPage * recordsPerPage
   ); // Fatiar os pedidos para exibir apenas os da página atual
 
-  // Funções para navegação entre páginas
   const nextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
@@ -29,55 +26,47 @@ const RecentOrders = () => {
     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
-  // Função para buscar pedidos do restaurante logado com detalhes do produto e quantidade
   const fetchOrders = async () => {
-    try {
-      if (!restaurante || !restaurante.id) return;
+    if (!restaurante || !restaurante.id) return;
 
+    try {
       const { data, error } = await supabase
         .from("Pedido")
-        .select("id, id_produto, quantidade, forma_pagto, status, Produto!inner(id, nome)") // Inclui quantidade e Produto.nome
+        .select("id, id_produto, quantidade, forma_pagto, status, Produto!inner(nome, descricao)")
         .eq("Produto.id_restaurante", restaurante.id)
-        .order("id", { ascending: false }); // Ordena por ID, mais recente primeiro
+        .order("id", { ascending: false });
 
-      if (error) {
-        console.error("Erro ao buscar pedidos:", error.message);
-        return;
-      }
+      if (error) throw error;
 
-      setOrders(data || []); // Armazena todos os pedidos com os dados do produto
+      setOrders(data || []);
     } catch (error) {
       console.error("Erro ao buscar pedidos:", error.message);
-    }
-  };
-
-  // Função para atualizar o status do pedido
-  const updateOrderStatus = async (orderId, newStatus) => {
-    try {
-      const { error } = await supabase
-        .from("Pedido")
-        .update({ status: newStatus })
-        .eq("id", orderId);
-
-      if (error) {
-        console.error("Erro ao atualizar o status do pedido:", error.message);
-        return;
-      }
-
-      // Atualiza a lista de pedidos localmente após a mudança de status
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus } : order
-        )
-      );
-    } catch (error) {
-      console.error("Erro ao atualizar o status do pedido:", error.message);
     }
   };
 
   useEffect(() => {
     fetchOrders();
   }, [restaurante]);
+
+  const handleViewDetails = async (orderId) => {
+    // Encontrar o pedido com base no ID
+    const selectedOrder = orders.find((order) => order.id === orderId);
+    setSelectedOrder(selectedOrder); // Armazenar o pedido completo no estado
+  };
+
+  if (selectedOrder) {
+    return (
+      <div className="order-details">
+        <h2>Detalhes do Pedido</h2>
+        <p><strong>Produto:</strong> {selectedOrder.Produto?.nome}</p>
+        <p><strong>Descrição:</strong> {selectedOrder.Produto?.descricao}</p>
+        <p><strong>Quantidade:</strong> {selectedOrder.quantidade}</p>
+        <p><strong>Método de Pagamento:</strong> {selectedOrder.forma_pagto}</p>
+        <p><strong>Status:</strong> {selectedOrder.status}</p>
+        <button onClick={() => setSelectedOrder(null)}>Voltar</button>
+      </div>
+    );
+  }
 
   return (
     <div className="recent-order">
@@ -86,12 +75,11 @@ const RecentOrders = () => {
         <thead>
           <tr>
             <th>Nome do Produto</th>
-            <th>ID do Produto</th>
             <th>Quantidade</th>
             <th>Método de Pagamento</th>
             <th>Status</th>
             <th>Ações</th>
-            <th>Detalhes</th> {/* Nova coluna */}
+            <th>Detalhes</th>
           </tr>
         </thead>
         <tbody>
@@ -99,8 +87,7 @@ const RecentOrders = () => {
             currentOrders.map((order) => (
               <tr key={order.id}>
                 <td>{order.Produto?.nome || "Produto desconhecido"}</td>
-                <td>{order.id_produto}</td>
-                <td>{order.quantidade}</td> {/* Exibe a quantidade do produto */}
+                <td>{order.quantidade}</td>
                 <td>{order.forma_pagto}</td>
                 <td
                   className={
@@ -114,20 +101,15 @@ const RecentOrders = () => {
                   {order.status}
                 </td>
                 <td>
-                  {/* Botões para confirmar ou negar o pedido */}
                   {order.status === "Pendente" && (
                     <>
                       <button
-                        id="accept-btn"
                         onClick={() => updateOrderStatus(order.id, "Confirmado")}
-                        className="confirm-btn"
                       >
                         <Check />
                       </button>
                       <button
-                        id="rejept-btn"
                         onClick={() => updateOrderStatus(order.id, "Negado")}
-                        className="deny-btn"
                       >
                         <Close />
                       </button>
@@ -135,22 +117,19 @@ const RecentOrders = () => {
                   )}
                 </td>
                 <td>
-                  {/* Botão para navegar para a página de detalhes */}
-                 <Link href='/genPedidos/' legacyBehavior>
-                 <a className="details-btn">Ver Detalhes</a>
-                    </Link>
+                  <button onClick={() => handleViewDetails(order.id)}>
+                    Ver Detalhes
+                  </button>
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="7">Nenhum pedido encontrado</td>
+              <td colSpan="6">Nenhum pedido encontrado.</td>
             </tr>
           )}
         </tbody>
       </table>
-
-      {/* Navegação de páginas */}
       <div className="pagination-controls">
         <button disabled={currentPage === 1} onClick={prevPage}>
           <ArrowBack />
